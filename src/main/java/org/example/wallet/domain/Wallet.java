@@ -1,13 +1,15 @@
 package org.example.wallet.domain;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Entity
 @Data
+@Table(name = "wallets",indexes =
+        {@Index(name = "idx_wallet_id",columnList = "walletId")})
 public class Wallet {
 
     /**
@@ -19,7 +21,7 @@ public class Wallet {
     /**
      * Баланс кошелька
      */
-    private double balance;
+    private Double balance;
 
 
 }

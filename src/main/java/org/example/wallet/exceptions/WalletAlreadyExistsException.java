@@ -1,4 +1,4 @@
-package org.example.wallet.exeption;
+package org.example.wallet.exceptions;
 
 public class WalletAlreadyExistsException extends RuntimeException {
     public WalletAlreadyExistsException() {

@@ -1,4 +1,4 @@
-package org.example.wallet.exeption;
+package org.example.wallet.exceptions;
 
 import java.util.UUID;
 

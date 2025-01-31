@@ -6,10 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.wallet.domain.Wallet;
 import org.example.wallet.dto.CreateWalletRequest;
 import org.example.wallet.dto.WalletRequest;
-import org.example.wallet.exeption.InsufficientFundsInWallet;
-import org.example.wallet.exeption.InvalidUUIDException;
-import org.example.wallet.exeption.WalletAlreadyExistsException;
-import org.example.wallet.exeption.WalletNotFoundException;
+import org.example.wallet.exceptions.*;
 import org.example.wallet.services.WalletService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.text.MessageFormat;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @RestController
 @RequestMapping("/api/v1/wallets")
@@ -27,6 +26,7 @@ public class WalletController {
     private final WalletService walletService;
 
     /**
+     *
      * Запрос на создание нового кошелька
      *
      * @param request принимает данные в формате
@@ -51,6 +51,7 @@ public class WalletController {
     }
 
     /**
+     *
      * Запрос для обновления баланса кошелька в зависимости от типа передаваемой операции
      *
      * @param request принимает данные в формате
@@ -59,27 +60,34 @@ public class WalletController {
      *                "operationType": "DEPOSIT or WITHDRAW",
      *                "amount": double
      *                }
-     * @return Результат обновления баланса, в случае успешного изменения Success update balance wallet
+     * @return Результат обновления баланса, в случае успешного изменения Баланс кошелька обновлен
      * в случае если кошелек не найден выбрасывается исключение WalletNotFoundException
      * в случае если баланс не достаточен для изменения выбрасывается исключение InsufficientFundsInWallet
      */
     @PostMapping()
-    public ResponseEntity<String> updateWallet(@Valid @RequestBody WalletRequest request) {
-        log.info("Вызов updateWallet для кошелька: {}", request);
+    public ResponseEntity<String> updateBalance(@RequestBody WalletRequest request) {
+        CompletableFuture<String> future = walletService.updateBalance(
+                request.getWalletId(), request.getOperationType(), request.getAmount()
+        );
+
         try {
-            walletService.updateBalance(request.getWalletId(), request.getOperationType(), request.getAmount());
-            log.info("Кошелек успешно обновлен: {}", request.getWalletId());
-            return ResponseEntity.ok("Баланс кошелька обновлен");
-        } catch (WalletNotFoundException exception) {
-            log.error("Ошибка при обновлении кошелька " + exception.getMessage());
-            return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (InsufficientFundsInWallet exception) {
-            log.error("Ошибка при обновлении кошелька " + exception.getMessage());
-            return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
+            String result = future.join();
+            return ResponseEntity.ok(result);
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof InsufficientFundsInWallet) {
+                return ResponseEntity.badRequest().body(e.getCause().getMessage());
+            } else if (e.getCause() instanceof WalletNotFoundException) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getCause().getMessage());
+            } else if (e.getCause() instanceof NotFoundOperationTypeException) {
+                return ResponseEntity.badRequest().body(e.getCause().getMessage());
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка сервера");
+            }
         }
     }
 
     /**
+     *
      * Запрос на получение информации о балансе кошелька
      *
      * @param walletId принимает UUID кошелька в формате

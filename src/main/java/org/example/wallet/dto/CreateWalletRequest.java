@@ -6,7 +6,6 @@ import lombok.Data;
 
 @Data
 public class CreateWalletRequest {
-
     @Positive(message = "Баланс должен быть положительным")
     @NotNull(message ="Баланс не может принимать значение null")
     private double initialBalance;

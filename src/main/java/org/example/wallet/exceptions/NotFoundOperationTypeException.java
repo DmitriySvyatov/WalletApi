@@ -1,4 +1,4 @@
-package org.example.wallet.exeption;
+package org.example.wallet.exceptions;
 
 public class NotFoundOperationTypeException extends RuntimeException {
     public NotFoundOperationTypeException() {
